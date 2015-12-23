@@ -1,35 +1,54 @@
 using UnityEngine;
 using System.Collections;
+using UnityEngine.UI;
 
 public class Gun : MonoBehaviour
 {
 	
 	public GameObject bullet;
-	public float bulletInitialVelocity;
-	public float maxTimeShooting;
+	public float bulletMaximumVelocity;
+	//public float maxTimeCharging;
+	public float angularVelocity;
+	public float chargeRatio = 0.3f;
 
-	private Vector2 direction;
-	private float timeShooting;
-	private bool shooting = false;
+	public Image fireGauge;
+
+	private float power = 0f;
+	private bool charging = false;
+	private bool angleChanging = false;
+	private bool angleDirection = false;
+	//private Vector2 direction;
+	//private float timeCharging;
 	private Vector2 mousePosScreen;
 	private Vector2 mousePosWorld;
 	private Vector2 playerToMouse;
-	
+
 	public void Awake ()
 	{
 	}
 
 	public void Update ()
 	{
-		UpdateDirection ();
-		CheckIfShooting ();
-
-		if (shooting) {
-			CalculateTimeShooting ();
-		}
+		//UpdateDirection ();
+		//CheckIfShooting ();
+		ChangeAngle ();
+		Charge ();
+		Shoot ();
 	}
 
-	public void UpdateDirection ()
+	public void SetCharging(bool value){
+		charging = value;
+	}
+	public void SetAngleUp (bool value){
+		angleChanging = value;
+		angleDirection = true;
+	}
+	public void SetAngleDown (bool value){
+		angleChanging = value;
+		angleDirection = false;
+	}
+
+	/*public void UpdateDirection ()
 	{
 		mousePosScreen = Input.mousePosition;
 		mousePosWorld = Camera.main.ScreenToWorldPoint (mousePosScreen);
@@ -51,36 +70,53 @@ public class Gun : MonoBehaviour
 		}
 		
 		transform.localEulerAngles = new Vector3 (0f, 0f, angle);
-	}
+	}*/
 
-	public void CheckIfShooting ()
+	/*public void CheckIfShooting ()
 	{
 		if (Input.GetMouseButtonDown (0)) {
 			shooting = true;
 			timeShooting = 0f;
 		}
-	}
+	}*/
 
-	public void CalculateTimeShooting ()
-	{
-		timeShooting += Time.deltaTime;
-		if (Input.GetMouseButtonUp (0) || Input.GetKeyUp (KeyCode.Space)) {
-			shooting = false;
-			Shoot ();
-		}
-		if (timeShooting > maxTimeShooting) {
-			shooting = false;
-			Shoot ();
+	void Charge (){
+		if (charging == false)
+			return;
+		power = power + (Time.deltaTime * chargeRatio);
+		fireGauge.fillAmount = power;
+		if (power >= 1f) {
+			power = 1f;
+			charging = false;
 		}
 	}
 	
 	public void Shoot ()
 	{
-		direction = playerToMouse;
+		if ((charging == true) || (power == 0f))
+			return;
+
+		//direction = playerToMouse;
 		GameObject b = Instantiate (bullet);
 		b.transform.position = new Vector3 (this.transform.position.x, this.transform.position.y, 0f);
-		b.GetComponent<Rigidbody2D> ().velocity = direction * bulletInitialVelocity * 
-			(timeShooting / maxTimeShooting);
+		b.transform.rotation = this.transform.rotation;
+		b.GetComponent<Rigidbody2D> ().velocity = b.transform.right * bulletMaximumVelocity * power;
+
+		fireGauge.fillAmount = 0.01f;
+		power = 0f;
+	}
+
+	public void ChangeAngle ()
+	{
+		if (angleChanging == false)
+			return;
+
+		if (angleDirection == true) { //  sentido anti-horario
+			transform.Rotate (new Vector3 (0f,0f,Time.deltaTime * angularVelocity));
+		}
+		if (angleDirection == false) { //  sentido anti-horario
+			transform.Rotate (new Vector3 (0f,0f,-Time.deltaTime * angularVelocity));
+		}
 	}
 
 }
